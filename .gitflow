@@ -1,0 +1,7 @@
+[gitflow "branch"]
+    master = main
+    develop = main
+    feature = feature/
+    release = release/
+    hotfix = hotfix/
+    support = support/
