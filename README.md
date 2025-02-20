@@ -5,7 +5,7 @@ Este proyecto implementa un servicio REST reactivo para consultar precios de pro
 ## 🛠 Tecnologías Utilizadas
 
 ### Core
-- Java 17
+- Java 21
 - Spring Boot 3.x
 - Spring WebFlux
 - R2DBC
@@ -41,32 +41,29 @@ Este proyecto implementa un servicio REST reactivo para consultar precios de pro
 
 El proyecto sigue los principios de Clean Architecture y Domain-Driven Design (DDD):
 
-```
-com.commerce.prices/
-├── domain/
-│   ├── Price.java
-│   └── exception/
-├── application/
-│   ├── port/
-│   │   ├── in/
-│   │   └── out/
-│   └── service/
-├── adapter/
-│   ├── web/
-│   └── persistence/
-└── config/
-```
+### DDD Táctico
+- **Entidades y Value Objects**:
+    - `Price` como Agregado Root
+    - Value Objects:
+        * `Money`: Encapsula monto y moneda
+        * `DateRange`: Manejo de rangos de fechas
+        * `Currency`: Validación y manejo de monedas
 
 ### Capas
 - **Domain**: Entidades y reglas de negocio
 - **Application**: Casos de uso y puertos
-- **Adapters**: Implementaciones de interfaces (Web, Persistencia)
+- **Infrastructure**: Implementaciones de interfaces (Web, Persistencia)
 - **Config**: Configuraciones de la aplicación
 
-## 📋 Requisitos Previos
-
-- Java 17 o superior
-- Maven 3.6 o superior
+### Manejo de Errores
+- Implementación usando anotaciones de Spring WebFlux
+- Respuestas de error estandarizadas:
+  ```json
+  {
+    "status": 500,
+    "message": "An unexpected error occurred"
+  }
+  ```
 
 ## 🚀 Inicio Rápido
 
@@ -210,13 +207,6 @@ Obtiene el precio aplicable para un producto en una fecha específica.
 }
 ```
 
-### Generación de Cliente
-
-La documentación OpenAPI puede ser utilizada para generar clientes en diversos lenguajes utilizando herramientas como:
-- OpenAPI Generator
-- Swagger Codegen
-- Spring Cloud OpenFeign
-
 ### Postman Collection
 
 Puedes importar la especificación OpenAPI directamente en Postman:
@@ -251,12 +241,44 @@ El proyecto incluye tests exhaustivos que cubren diferentes escenarios:
 mvn test
 ```
 
+### Tests de Integración
+- **Test Suite Principal**: `PriceControllerTest`
+    - Tests de funcionalidad base
+    - Manejo de errores
+    - Validaciones de parámetros
+
 ### Casos de Test
 1. Petición a las 10:00 del día 14 del producto 35455 para la brand 1 (ZARA)
 2. Petición a las 16:00 del día 14 del producto 35455 para la brand 1 (ZARA)
 3. Petición a las 21:00 del día 14 del producto 35455 para la brand 1 (ZARA)
 4. Petición a las 10:00 del día 15 del producto 35455 para la brand 1 (ZARA)
 5. Petición a las 21:00 del día 16 del producto 35455 para la brand 1 (ZARA)
+
+### Test de Errores
+- **500 Internal Server Error**:
+  ```java
+  @Test
+  void should_return_500_when_unexpected_error_occurs()
+  ```
+- **404 Not Found**:
+  ```java
+  @Test
+  void testNotFound_WhenNoPriceExists()
+  ```
+- **400 Bad Request**:
+  ```java
+  @Test
+  void testBadRequest_WhenInvalidDateFormat()
+  ```
+  
+### Cobertura
+- Configuración de JaCoCo
+- Mínimo 70% de cobertura
+
+Para ejecutar los tests y verificar la cobertura:
+```bash
+mvn clean verify
+```
 
 ## 🐳 Características del Docker
 
@@ -277,16 +299,66 @@ mvn test
 - Logs configurados
 - Métricas disponibles
 
+## 🔍 Validaciones
+
+### Parámetros de Entrada
+- Fecha de aplicación (formato ISO)
+- ID de producto (positivo)
+- ID de marca (positivo)
+
+### Value Objects
+- **Currency**: Validación de códigos ISO
+- **DateRange**: Validación de rangos temporales
+- **Money**: Validación de montos no negativos
+
+## 📈 Mejoras Implementadas
+
+### Optimización de Base de Datos
+- Índices compuestos para búsquedas frecuentes
+- Ordenamiento incluido en índice para prioridad
+
+### Manejo de Errores Robusto
+- Excepciones específicas del dominio
+- Mapeo a códigos HTTP apropiados
+- Mensajes de error consistentes
+
+### Testing Mejorado
+- Tests parametrizados para validaciones
+- Spy para tests de errores
+- Cobertura ampliada
+
 ## 📦 Base de Datos
 
 La aplicación utiliza H2 en memoria con inicialización mediante Flyway:
 
 - Archivo schema: `src/main/resources/db/migration/V1__create_prices_table.sql`
 - Datos iniciales: `src/main/resources/db/migration/V2__insert_initial_data.sql`
-
+- Índices optimizados: `src/main/resources/db/migration/V3__add_price_indexes.sql`
+  
 ## 🏷 Versionado
 
 Se utiliza [SemVer](http://semver.org/) para el versionado.
+
+## 🚀 CI/CD
+
+### GitHub Actions
+- Build y test automáticos
+- Verificación de cobertura
+- Generación de artefactos
+
+Para generar una nueva version se debe crear un tag con el formato `vX.Y.Z` y hacer push al repositorio.
+```bash
+git tag v1.0.0 -m "Release version 1.0.0"
+git push origin v1.0.0
+```
+#### Esto disparará el workflow que:
+
+- Construirá el JAR con la versión 1.0.0
+- Ejecutará tests y análisis
+- Creará un release en GitHub
+- Publicará la imagen Docker
+
+El JAR y la imagen Docker tendrán la versión del tag (ejemplo: price-service-1.0.0.jar).
 
 ## 🤝 Contribuir
 
@@ -295,6 +367,32 @@ Se utiliza [SemVer](http://semver.org/) para el versionado.
 3. Commit de cambios (`git commit -m 'Add some AmazingFeature'`)
 4. Push a la rama (`git push origin feature/AmazingFeature`)
 5. Crear Pull Request
+
+### Crear nueva feature
+```bash
+git checkout main
+git checkout -b feature/new-feature
+```
+
+#### Trabajar en la feature y hacer commits usando conventional commits
+```bash
+git commit -m "feat(price): Add new price validation logic"
+git commit -m "test(price): Add tests for price validation"
+```
+
+#### Cuando la feature está lista
+```bash
+git checkout main
+git merge --no-ff feature/new-feature
+```
+
+#### Para hotfixes
+```bash
+git checkout -b hotfix/fix-description
+git commit -m "fix(price): Fix price description format"
+git checkout main
+git merge --no-ff hotfix/fix-description
+```
 
 ## ✨ Buenas Prácticas Implementadas
 
