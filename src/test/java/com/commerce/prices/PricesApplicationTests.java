@@ -7,7 +7,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 class PricesApplicationTests {
 
     @Test
-    void contextLoads() {
+    void springApplicationShouldStartSuccessfully() {
+        PricesApplication.main(new String[]{});
     }
 
 }
