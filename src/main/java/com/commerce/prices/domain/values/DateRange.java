@@ -2,10 +2,12 @@ package com.commerce.prices.domain.values;
 
 import com.commerce.prices.domain.common.ValueObject;
 import com.commerce.prices.domain.exception.InvalidDateRangeException;
+import lombok.Getter;
 
 import java.time.LocalDateTime;
 import java.util.Objects;
 
+@Getter
 public class DateRange implements ValueObject {
     private final LocalDateTime startDate;
     private final LocalDateTime endDate;
@@ -30,14 +32,6 @@ public class DateRange implements ValueObject {
     public boolean overlaps(DateRange other) {
         return !this.startDate.isAfter(other.endDate) &&
                 !this.endDate.isBefore(other.startDate);
-    }
-
-    public LocalDateTime getStartDate() {
-        return startDate;
-    }
-
-    public LocalDateTime getEndDate() {
-        return endDate;
     }
 
     @Override

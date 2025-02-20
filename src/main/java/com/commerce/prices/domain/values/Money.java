@@ -3,10 +3,12 @@ package com.commerce.prices.domain.values;
 import com.commerce.prices.domain.common.ValueObject;
 import com.commerce.prices.domain.exception.CurrencyMismatchException;
 import com.commerce.prices.domain.exception.InvalidMoneyAmountException;
+import lombok.Getter;
 
 import java.math.BigDecimal;
 import java.util.Objects;
 
+@Getter
 public class Money implements ValueObject {
     private final BigDecimal amount;
     private final Currency currency;
@@ -29,14 +31,6 @@ public class Money implements ValueObject {
             throw new CurrencyMismatchException("Cannot add different currencies");
         }
         return new Money(this.amount.add(other.amount), this.currency);
-    }
-
-    public BigDecimal getAmount() {
-        return amount;
-    }
-
-    public Currency getCurrency() {
-        return currency;
     }
 
     @Override

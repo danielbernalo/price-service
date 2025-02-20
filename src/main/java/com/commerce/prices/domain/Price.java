@@ -2,7 +2,6 @@ package com.commerce.prices.domain;
 
 import com.commerce.prices.domain.common.AggregateRoot;
 import com.commerce.prices.domain.exception.InvalidPriorityException;
-import com.commerce.prices.domain.values.Currency;
 import com.commerce.prices.domain.values.DateRange;
 import com.commerce.prices.domain.values.Money;
 import com.commerce.prices.domain.values.PriceId;
