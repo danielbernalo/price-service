@@ -1,4 +1,4 @@
-package com.commerce.prices.adapter.web;
+package com.commerce.prices.infrastructure.web;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -6,6 +6,8 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.web.reactive.server.WebTestClient;
+import reactor.core.publisher.Flux;
+import reactor.core.scheduler.Schedulers;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -17,9 +19,10 @@ class PriceControllerTest {
     private WebTestClient webTestClient;
 
     private static final DateTimeFormatter formatter = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
-    private static final String BASE_URL = "/api/prices";
-    private static final Long PRODUCT_ID = 35455L;
-    private static final Long BRAND_ID = 1L;
+    public static final String BASE_URL = "/api/prices";
+    public static final Long PRODUCT_ID = 35455L;
+    public static final Long NOT_FOUND_PRODUCT_ID = 200000L;
+    public static final Long BRAND_ID = 1L;
 
     @Test
     void test1_Request_At_10AM_Day14() {
@@ -257,5 +260,40 @@ class PriceControllerTest {
                         ((String) message).contains("Invalid brand ID"));
     }
 
+    @Test
+    void testNotFoundPrice_WhenMissingProductIdNotExits() {
+        webTestClient.get()
+                .uri(uriBuilder -> uriBuilder
+                        .path(BASE_URL)
+                        .queryParam("applicationDate", "2020-06-14T00:00:00")
+                        .queryParam("productId", NOT_FOUND_PRODUCT_ID)
+                        .queryParam("brandId", BRAND_ID)
+                        .build())
+                .exchange()
+                .expectStatus().isNotFound()
+                .expectBody()
+                .jsonPath("$.status").isEqualTo(404)
+                .jsonPath("$.message").value(message ->
+                        ((String) message).contains("Price not found"));
+    }
+
+    @Test
+    void test_concurrent_requests() {
+        Flux.range(0, 100)
+                .parallel()
+                .runOn(Schedulers.boundedElastic())
+                .flatMap(i -> webTestClient.get()
+                        .uri(uriBuilder -> uriBuilder
+                                .path("/api/prices")
+                                .queryParam("applicationDate", "2020-06-14T10:00:00")
+                                .queryParam("productId", 35455)
+                                .queryParam("brandId", 1)
+                                .build())
+                        .exchange()
+                        .returnResult(String.class)
+                        .getResponseBody())
+                .sequential()
+                .blockLast();
+    }
 
 }

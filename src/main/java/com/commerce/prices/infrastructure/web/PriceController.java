@@ -1,5 +1,6 @@
-package com.commerce.prices.adapter.web;
+package com.commerce.prices.infrastructure.web;
 
+import com.commerce.prices.infrastructure.web.exception.InvalidPriceRequestException;
 import com.commerce.prices.application.dto.PriceResponse;
 import com.commerce.prices.application.port.in.GetPriceUseCase;
 import io.swagger.v3.oas.annotations.Operation;
@@ -15,7 +16,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.server.ServerWebInputException;
 import reactor.core.publisher.Mono;
 
 import java.time.LocalDateTime;
@@ -46,16 +46,14 @@ public class PriceController {
                     responseCode = "404",
                     description = "Price not found",
                     content = @Content(
-                            mediaType = MediaType.APPLICATION_JSON_VALUE,
-                            schema = @Schema(implementation = ErrorResponse.class)
+                            mediaType = MediaType.APPLICATION_JSON_VALUE
                     )
             ),
             @ApiResponse(
                     responseCode = "400",
                     description = "Invalid parameters",
                     content = @Content(
-                            mediaType = MediaType.APPLICATION_JSON_VALUE,
-                            schema = @Schema(implementation = ErrorResponse.class)
+                            mediaType = MediaType.APPLICATION_JSON_VALUE
                     )
             )
     })
@@ -71,22 +69,19 @@ public class PriceController {
             @Parameter(description = "Brand identifier (1 = ZARA)", required = true, example = "1")
             @RequestParam Long brandId
     ) {
-        validateParameters(applicationDate, productId, brandId);
+        validateRequest( productId, brandId);
 
         return getPriceUseCase.getPriceByDateProductAndBrand(applicationDate, productId, brandId)
                 .map(ResponseEntity::ok)
                 .defaultIfEmpty(ResponseEntity.notFound().build());
     }
 
-    private void validateParameters(LocalDateTime applicationDate, Long productId, Long brandId) {
-        if (applicationDate == null) {
-            throw new ServerWebInputException("Application date is required");
-        }
+    private void validateRequest(Long productId, Long brandId) {
         if (productId == null || productId <= 0) {
-            throw new ServerWebInputException("Invalid product ID");
+            throw new InvalidPriceRequestException("Invalid product ID");
         }
         if (brandId == null || brandId <= 0) {
-            throw new ServerWebInputException("Invalid brand ID");
+            throw new InvalidPriceRequestException("Invalid brand ID");
         }
     }
 }
